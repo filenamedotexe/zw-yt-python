@@ -1,0 +1,1394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Transcript Database</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .stats-bar {
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            color: white;
+            display: flex;
+            justify-content: space-around;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .tab-button {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            color: #666;
+            font-size: 16px;
+            cursor: pointer;
+            position: relative;
+            transition: color 0.3s;
+        }
+        
+        .tab-button.active {
+            color: #667eea;
+        }
+        
+        .tab-button.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #667eea;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Table Styles */
+        .table-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+        
+        .search-box {
+            flex: 1;
+            max-width: 400px;
+            position: relative;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 10px 10px 10px 35px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        
+        .search-box::before {
+            content: '🔍';
+            position: absolute;
+            left: 10px;
+            top: 10px;
+        }
+        
+        .table-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .btn-success {
+            background: #28a745;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+        }
+        
+        .btn-small {
+            padding: 5px 10px;
+            font-size: 12px;
+            margin: 0 2px;
+        }
+        
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-completed {
+            background: #cce5ff;
+            color: #004085;
+        }
+        
+        .status-failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-running {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+        
+        thead {
+            background: #f8f9fa;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #e0e0e0;
+            white-space: nowrap;
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .checkbox-cell {
+            width: 40px;
+        }
+        
+        .checkbox-cell input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .title-cell {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .channel-cell {
+            font-weight: 500;
+            color: #667eea;
+        }
+        
+        .date-cell {
+            white-space: nowrap;
+            color: #666;
+        }
+        
+        .actions-cell {
+            white-space: nowrap;
+        }
+        
+        .btn-small {
+            padding: 5px 10px;
+            font-size: 12px;
+            margin: 0 2px;
+        }
+        
+        .video-id-cell {
+            font-family: monospace;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        /* Download Form */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .help-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 900px;
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-body {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        
+        .markdown-preview {
+            white-space: pre-wrap;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', monospace;
+            line-height: 1.6;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-badge.duplicate {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-badge.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-badge.failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .progress-section {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .progress-section.active {
+            display: block;
+        }
+        
+        .selection-info {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 10px 15px;
+            border-radius: 8px;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        
+        .selection-info.active {
+            display: flex;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 YouTube Transcript Database</h1>
+            <p>Browse, search, and combine YouTube transcripts</p>
+        </div>
+        
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-value" id="totalChannels">-</div>
+                <div>Channels</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="totalTranscripts">-</div>
+                <div>Transcripts</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="selectedCount">0</div>
+                <div>Selected</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="apiStatus">-</div>
+                <div>API Status</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="tab-buttons">
+                <button class="tab-button active" onclick="switchTab('database')">📊 Database</button>
+                <button class="tab-button" onclick="switchTab('download')">📥 Download</button>
+                <button class="tab-button" onclick="switchTab('scheduler')">⏰ Scheduler</button>
+                <button class="tab-button" onclick="switchTab('settings')">⚙️ Settings</button>
+            </div>
+            
+            <!-- Database Tab -->
+            <div id="databaseTab" class="tab-content active">
+                <div class="selection-info" id="selectionInfo">
+                    <span><strong id="selectedText">0</strong> transcripts selected</span>
+                    <button class="btn btn-success" onclick="combineSelected()">Combine to Markdown</button>
+                </div>
+                
+                <div class="table-controls">
+                    <div class="search-box">
+                        <input type="text" id="tableSearch" placeholder="Filter transcripts..." onkeyup="filterTable()">
+                    </div>
+                    <div class="table-actions">
+                        <button class="btn btn-secondary" onclick="selectAll()">Select All</button>
+                        <button class="btn btn-secondary" onclick="clearSelection()">Clear Selection</button>
+                        <button class="btn" onclick="refreshTable()">🔄 Refresh</button>
+                    </div>
+                </div>
+                
+                <div class="table-wrapper">
+                    <table id="transcriptTable">
+                        <thead>
+                            <tr>
+                                <th class="checkbox-cell">
+                                    <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()">
+                                </th>
+                                <th>Channel</th>
+                                <th>Video Title</th>
+                                <th>Published</th>
+                                <th>Downloaded</th>
+                                <th>Video ID</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <tr>
+                                <td colspan="7" style="text-align: center; padding: 40px;">
+                                    <div class="loading-spinner"></div>
+                                    <p style="margin-top: 10px;">Loading transcripts...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Download Tab -->
+            <div id="downloadTab" class="tab-content">
+                <div id="apiKeyWarning" class="api-key-section" style="display: none; background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                    <strong>⚠️ API Key Required</strong>
+                    <p>Set your YouTube API key in Settings tab to download transcripts.</p>
+                </div>
+                
+                <form id="downloadForm">
+                    <div class="form-group">
+                        <label>YouTube Channel</label>
+                        <input type="text" id="channel" placeholder="@channelname or channel name" required>
+                        <div class="help-text">Enter channel handle or name</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Folder Name</label>
+                        <input type="text" id="folder" placeholder="Leave empty to use channel name">
+                        <div class="help-text">Auto-creates folder if not exists</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>After Date</label>
+                            <input type="date" id="afterDate">
+                        </div>
+                        <div class="form-group">
+                            <label>Video Limit</label>
+                            <input type="number" id="videoLimit" min="1" max="50">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Delay (seconds)</label>
+                            <input type="number" id="delay" value="3" min="1" max="60">
+                        </div>
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <button type="submit" class="btn">Start Download</button>
+                        </div>
+                    </div>
+                </form>
+                
+                <div id="progressSection" class="progress-section">
+                    <h3>Download Progress</h3>
+                    <div id="statusMessage"></div>
+                    <div id="videoList" style="margin-top: 15px;"></div>
+                </div>
+            </div>
+            
+            <!-- Settings Tab -->
+            <div id="settingsTab" class="tab-content">
+                <h3>API Key Management</h3>
+                <div class="form-group">
+                    <label>YouTube Data API Key</label>
+                    <div class="help-text" style="margin-bottom: 15px;">Your API key is stored securely in the server session and never exposed publicly</div>
+                    <div id="apiKeyControls">
+                        <input type="password" id="apiKey" placeholder="Enter your API key" style="margin-bottom: 10px;">
+                        <button class="btn" onclick="saveApiKey()">Save API Key</button>
+                    </div>
+                    <div id="apiKeyStatus" style="margin-top: 10px;"></div>
+                </div>
+                
+                <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 8px;">
+                    <strong>⚠️ Rate Limiting Info:</strong><br>
+                    <p style="margin-top: 10px;">• <strong>YouTube Transcripts:</strong> IP-based rate limiting (no API key helps)</p>
+                    <p>• <strong>YouTube Data API:</strong> API key quota (5,000 units/day free)</p>
+                    <p>• If blocked, wait 15-30 minutes or use VPN/different network</p>
+                </div>
+                
+                <h3 style="margin-top: 30px;">Storage Info</h3>
+                <div style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <p><strong>Type:</strong> Secure Cloud Storage</p>
+                    <p><strong>Access:</strong> Private and secure</p>
+                    <p><strong>Capacity:</strong> Unlimited</p>
+                </div>
+            </div>
+            
+            <!-- Scheduler Tab -->
+            <div id="schedulerTab" class="tab-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3>Automated Downloads</h3>
+                    <button class="btn btn-primary" onclick="showCreateJobForm()">+ Create New Job</button>
+                </div>
+                
+                <div class="help-text" style="margin-bottom: 20px; padding: 15px; background: #e3f2fd; border-radius: 8px;">
+                    <strong>📅 How it works:</strong> Set up automatic downloads that run on schedule (daily/weekly/monthly). 
+                    On first run, it will catch up by downloading all transcripts from your chosen start date until now, 
+                    then continue at your selected frequency.
+                </div>
+                
+                <!-- Create Job Form (hidden by default) -->
+                <div id="createJobForm" class="card" style="display: none; margin-bottom: 20px;">
+                    <h4>Create Scheduled Job</h4>
+                    <div class="form-group">
+                        <label>Job Name</label>
+                        <input type="text" id="jobName" placeholder="e.g. Alex Becker Daily Updates">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Channels to Monitor</label>
+                        <textarea id="jobChannels" placeholder="Enter channel names or handles, one per line:
+@alexbecker
+@anotherchanne" rows="4"></textarea>
+                        <div class="help-text">Enter channel names or handles (e.g., @channelname), one per line</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Frequency</label>
+                        <select id="jobFrequency">
+                            <option value="daily">Daily (midnight)</option>
+                            <option value="weekly">Weekly (Monday 12:00 AM)</option>
+                            <option value="monthly">Monthly (1st at 12:00 AM)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Start Date (for catch-up)</label>
+                        <input type="date" id="jobStartDate">
+                        <div class="help-text">Downloads all videos from this date to now on first run</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Folder Prefix (optional)</label>
+                        <input type="text" id="jobFolderPrefix" placeholder="e.g. auto_">
+                        <div class="help-text">Prefix for folder names (e.g., "auto_" creates "auto_channelname")</div>
+                    </div>
+                    
+                    <div class="form-buttons">
+                        <button class="btn btn-primary" onclick="createScheduledJob()">Create Job</button>
+                        <button class="btn btn-secondary" onclick="hideCreateJobForm()">Cancel</button>
+                    </div>
+                </div>
+                
+                <!-- Jobs List -->
+                <div id="jobsList">
+                    <div class="loading" id="jobsLoading">Loading scheduled jobs...</div>
+                    <div id="jobsTable" style="display: none;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Job Name</th>
+                                    <th>Channels</th>
+                                    <th>Frequency</th>
+                                    <th>Start Date</th>
+                                    <th>Last Run</th>
+                                    <th>Next Run</th>
+                                    <th>Status</th>
+                                    <th>Downloads</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="jobsTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Combine Modal -->
+    <div id="combineModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Combined Transcripts</h2>
+                <button onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="markdown-preview" id="markdownPreview"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-success" onclick="copyMarkdown()">📋 Copy to Clipboard</button>
+                <button class="btn btn-secondary" onclick="downloadMarkdown()">💾 Download</button>
+                <button class="btn" onclick="closeModal()">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let allTranscripts = [];
+        let selectedTranscripts = new Set();
+        let currentMarkdown = '';
+        let currentTaskId = null;
+        let progressInterval = null;
+        
+        // Initialize
+        window.addEventListener('DOMContentLoaded', () => {
+            checkApiKey();
+            loadStats();
+            loadTranscripts();
+            showApiKeyControls();
+        });
+        
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tab + 'Tab').classList.add('active');
+            
+            if (tab === 'database') {
+                refreshTable();
+            } else if (tab === 'scheduler') {
+                loadScheduledJobs();
+            }
+        }
+        
+        async function checkApiKey() {
+            try {
+                const response = await fetch('/api/check_api_key');
+                const data = await response.json();
+                
+                const apiStatus = document.getElementById('apiStatus');
+                const warning = document.getElementById('apiKeyWarning');
+                
+                if (data.has_key) {
+                    apiStatus.textContent = '✓';
+                    apiStatus.style.color = '#28a745';
+                    if (warning) warning.style.display = 'none';
+                } else {
+                    apiStatus.textContent = '✗';
+                    apiStatus.style.color = '#dc3545';
+                    if (warning) warning.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error checking API key:', error);
+            }
+        }
+        
+        async function saveApiKey() {
+            const apiKey = document.getElementById('apiKey').value;
+            if (!apiKey) {
+                alert('Please enter an API key');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/set_api_key', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({api_key: apiKey})
+                });
+                
+                const data = await response.json();
+                const status = document.getElementById('apiKeyStatus');
+                
+                if (data.success) {
+                    // Store in localStorage for persistence
+                    localStorage.setItem('youtube_api_key_set', 'true');
+                    status.innerHTML = '<span style="color: #28a745;">✓ API key saved and will persist</span>';
+                    document.getElementById('apiKey').value = '';
+                    checkApiKey();
+                    showApiKeyControls();
+                } else {
+                    status.innerHTML = '<span style="color: #dc3545;">✗ ' + data.message + '</span>';
+                }
+            } catch (error) {
+                alert('Error saving API key: ' + error.message);
+            }
+        }
+        
+        async function removeApiKey() {
+            if (!confirm('Are you sure you want to remove the API key?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/remove_api_key', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    localStorage.removeItem('youtube_api_key_set');
+                    document.getElementById('apiKeyStatus').innerHTML = '<span style="color: #666;">API key removed</span>';
+                    checkApiKey();
+                    showApiKeyControls();
+                }
+            } catch (error) {
+                alert('Error removing API key: ' + error.message);
+            }
+        }
+        
+        function showApiKeyControls() {
+            const hasKey = localStorage.getItem('youtube_api_key_set') === 'true';
+            const controls = document.getElementById('apiKeyControls');
+            if (!controls) return;
+            
+            if (hasKey) {
+                controls.innerHTML = `
+                    <button class="btn btn-danger" onclick="removeApiKey()">Remove API Key</button>
+                    <p style="margin-top: 10px; color: #666;">Your API key is stored securely on the server (session-based)</p>
+                `;
+            } else {
+                controls.innerHTML = `
+                    <input type="password" id="apiKey" placeholder="Enter your API key" style="margin-bottom: 10px;">
+                    <button class="btn" onclick="saveApiKey()">Save API Key</button>
+                `;
+            }
+        }
+        
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/storage/stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('totalChannels').textContent = data.stats.total_channels;
+                    document.getElementById('totalTranscripts').textContent = data.stats.total_transcripts;
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+        
+        async function loadTranscripts() {
+            try {
+                const response = await fetch('/api/storage/transcripts/detailed');
+                const data = await response.json();
+                
+                if (data.success) {
+                    allTranscripts = data.transcripts;
+                    renderTable();
+                }
+            } catch (error) {
+                console.error('Error loading transcripts:', error);
+                document.getElementById('tableBody').innerHTML = '<tr><td colspan="7" style="text-align: center;">Error loading transcripts</td></tr>';
+            }
+        }
+        
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            
+            if (allTranscripts.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px;">No transcripts yet. Download some to get started!</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = allTranscripts.map(transcript => `
+                <tr data-path="${transcript.path}">
+                    <td class="checkbox-cell">
+                        <input type="checkbox" onchange="toggleSelection('${transcript.path}')" 
+                               ${selectedTranscripts.has(transcript.path) ? 'checked' : ''}>
+                    </td>
+                    <td class="channel-cell">${transcript.channel || '-'}</td>
+                    <td class="title-cell" title="${transcript.title}">${transcript.title || '-'}</td>
+                    <td class="date-cell">${formatDate(transcript.published_at)}</td>
+                    <td class="date-cell">${formatDate(transcript.downloaded_at)}</td>
+                    <td class="video-id-cell">${transcript.video_id || '-'}</td>
+                    <td class="actions-cell">
+                        <button class="btn btn-small btn-secondary" onclick="copyVideoId('${transcript.video_id}')">📋 ID</button>
+                        <button class="btn btn-small" onclick="viewTranscript('${transcript.path}')">👁️ View</button>
+                        <button class="btn btn-small btn-secondary" onclick="copyTranscriptText('${transcript.path}')">📝 Copy</button>
+                    </td>
+                </tr>
+            `).join('');
+            
+            updateSelectionInfo();
+        }
+        
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            try {
+                const date = new Date(dateStr);
+                return date.toLocaleDateString();
+            } catch {
+                return dateStr.substring(0, 10);
+            }
+        }
+        
+        function filterTable() {
+            const search = document.getElementById('tableSearch').value.toLowerCase();
+            const rows = document.querySelectorAll('#tableBody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(search) ? '' : 'none';
+            });
+        }
+        
+        function toggleSelection(path) {
+            if (selectedTranscripts.has(path)) {
+                selectedTranscripts.delete(path);
+            } else {
+                selectedTranscripts.add(path);
+            }
+            updateSelectionInfo();
+        }
+        
+        function toggleSelectAll() {
+            const checkbox = document.getElementById('selectAllCheckbox');
+            const visibleRows = document.querySelectorAll('#tableBody tr:not([style*="display: none"])');
+            
+            visibleRows.forEach(row => {
+                const path = row.dataset.path;
+                const rowCheckbox = row.querySelector('input[type="checkbox"]');
+                
+                if (checkbox.checked) {
+                    selectedTranscripts.add(path);
+                    if (rowCheckbox) rowCheckbox.checked = true;
+                } else {
+                    selectedTranscripts.delete(path);
+                    if (rowCheckbox) rowCheckbox.checked = false;
+                }
+            });
+            
+            updateSelectionInfo();
+        }
+        
+        function selectAll() {
+            const visibleRows = document.querySelectorAll('#tableBody tr:not([style*="display: none"])');
+            visibleRows.forEach(row => {
+                const path = row.dataset.path;
+                if (path) {
+                    selectedTranscripts.add(path);
+                    const checkbox = row.querySelector('input[type="checkbox"]');
+                    if (checkbox) checkbox.checked = true;
+                }
+            });
+            document.getElementById('selectAllCheckbox').checked = true;
+            updateSelectionInfo();
+        }
+        
+        function clearSelection() {
+            selectedTranscripts.clear();
+            document.querySelectorAll('#tableBody input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
+            document.getElementById('selectAllCheckbox').checked = false;
+            updateSelectionInfo();
+        }
+        
+        function updateSelectionInfo() {
+            const count = selectedTranscripts.size;
+            document.getElementById('selectedCount').textContent = count;
+            document.getElementById('selectedText').textContent = count;
+            
+            const selectionInfo = document.getElementById('selectionInfo');
+            if (count > 0) {
+                selectionInfo.classList.add('active');
+            } else {
+                selectionInfo.classList.remove('active');
+            }
+        }
+        
+        async function combineSelected() {
+            if (selectedTranscripts.size === 0) {
+                alert('Please select at least one transcript');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/storage/transcripts/combine', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({paths: Array.from(selectedTranscripts)})
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentMarkdown = data.markdown;
+                    document.getElementById('markdownPreview').textContent = currentMarkdown;
+                    document.getElementById('combineModal').classList.add('active');
+                } else {
+                    alert('Error combining transcripts: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        function copyVideoId(videoId) {
+            navigator.clipboard.writeText(videoId);
+            // Show brief notification
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = '✓ Copied!';
+            setTimeout(() => {
+                btn.textContent = originalText;
+            }, 1000);
+        }
+        
+        async function copyTranscriptText(path) {
+            // Extract channel and title from path
+            const parts = path.split('/');
+            if (parts.length >= 3) {
+                const channel = parts[1];
+                const filename = parts[2].replace('.json', '');
+                
+                try {
+                    const response = await fetch(`/api/storage/transcript/${channel}/${filename}`);
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        navigator.clipboard.writeText(data.transcript.transcript);
+                        
+                        // Show brief notification
+                        const btn = event.target;
+                        const originalText = btn.textContent;
+                        btn.textContent = '✓ Copied!';
+                        setTimeout(() => {
+                            btn.textContent = originalText;
+                        }, 1000);
+                    }
+                } catch (error) {
+                    alert('Error copying transcript: ' + error.message);
+                }
+            }
+        }
+        
+        async function viewTranscript(path) {
+            // Extract channel and title from path
+            const parts = path.split('/');
+            if (parts.length >= 3) {
+                const channel = parts[1];
+                const filename = parts[2].replace('.json', '');
+                
+                try {
+                    const response = await fetch(`/api/storage/transcript/${channel}/${filename}`);
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        const transcript = data.transcript;
+                        const markdown = `# ${transcript.title}\n\n` +
+                            `**Channel:** ${transcript.channel}\n` +
+                            `**Video ID:** ${transcript.video_id}\n` +
+                            `**Published:** ${transcript.published_at || 'Unknown'}\n\n` +
+                            `## Transcript\n\n${transcript.transcript}`;
+                        
+                        currentMarkdown = markdown;
+                        document.getElementById('markdownPreview').textContent = markdown;
+                        document.getElementById('combineModal').classList.add('active');
+                    }
+                } catch (error) {
+                    alert('Error loading transcript: ' + error.message);
+                }
+            }
+        }
+        
+        function closeModal() {
+            document.getElementById('combineModal').classList.remove('active');
+        }
+        
+        function copyMarkdown() {
+            navigator.clipboard.writeText(currentMarkdown);
+            alert('Copied to clipboard!');
+        }
+        
+        function downloadMarkdown() {
+            const blob = new Blob([currentMarkdown], {type: 'text/markdown'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'combined_transcripts.md';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        function refreshTable() {
+            loadStats();
+            loadTranscripts();
+        }
+        
+        // Download form
+        document.getElementById('downloadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const config = {
+                channel: document.getElementById('channel').value,
+                folder: document.getElementById('folder').value,
+                after_date: document.getElementById('afterDate').value,
+                delay: document.getElementById('delay').value,
+                limit: document.getElementById('videoLimit').value
+            };
+            
+            startDownload(config);
+        });
+        
+        async function startDownload(config) {
+            document.getElementById('progressSection').classList.add('active');
+            document.getElementById('statusMessage').textContent = 'Starting download...';
+            document.getElementById('videoList').innerHTML = '';
+            
+            try {
+                const response = await fetch('/api/download', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(config)
+                });
+                
+                const data = await response.json();
+                currentTaskId = data.task_id;
+                progressInterval = setInterval(updateProgress, 1000);
+                
+            } catch (error) {
+                document.getElementById('statusMessage').textContent = 'Error: ' + error.message;
+            }
+        }
+        
+        async function updateProgress() {
+            if (!currentTaskId) return;
+            
+            try {
+                const response = await fetch(`/api/progress/${currentTaskId}`);
+                const progress = await response.json();
+                
+                if (progress.status === 'not_found') {
+                    clearInterval(progressInterval);
+                    return;
+                }
+                
+                const statusEl = document.getElementById('statusMessage');
+                const videoList = document.getElementById('videoList');
+                
+                if (progress.status === 'fetching_channel') {
+                    statusEl.innerHTML = '<strong>🔍 Fetching channel information...</strong>';
+                } else if (progress.status === 'downloading') {
+                    statusEl.innerHTML = `<strong>⬇️ Downloading ${progress.current} of ${progress.total}...</strong>`;
+                } else if (progress.status === 'completed') {
+                    // Build detailed summary
+                    let summary = `<strong>✅ Download Complete!</strong><br>`;
+                    summary += `<div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px;">`;
+                    summary += `<strong>Summary:</strong><br>`;
+                    summary += `✓ Success: ${progress.success} transcripts<br>`;
+                    
+                    if (progress.duplicates > 0) {
+                        summary += `⚠️ Duplicates skipped: ${progress.duplicates}<br>`;
+                    }
+                    
+                    if (progress.errors > 0) {
+                        summary += `❌ Errors: ${progress.errors}<br>`;
+                    }
+                    
+                    summary += `<br><strong>Total processed:</strong> ${progress.total}`;
+                    summary += `</div>`;
+                    
+                    statusEl.innerHTML = summary;
+                    clearInterval(progressInterval);
+                    refreshTable();
+                } else if (progress.status === 'error') {
+                    statusEl.innerHTML = `<strong style="color: #dc3545;">❌ Error: ${progress.error}</strong>`;
+                    clearInterval(progressInterval);
+                }
+                
+                // Update video list with detailed error info
+                if (progress.videos && progress.videos.length > 0) {
+                    let html = '<div style="max-height: 400px; overflow-y: auto;">';
+                    
+                    progress.videos.forEach((video, i) => {
+                        let badge = '';
+                        let errorDetail = '';
+                        
+                        if (video.status === 'success') {
+                            badge = '<span class="status-badge success">✓ Success</span>';
+                        } else if (video.status === 'failed') {
+                            if (video.error_type === 'duplicate') {
+                                badge = '<span class="status-badge duplicate">⚠️ Duplicate</span>';
+                                errorDetail = ' <small style="color: #856404;">(Already exists in database)</small>';
+                            } else {
+                                badge = '<span class="status-badge failed">❌ Failed</span>';
+                                // Show detailed error
+                                const errorMsg = video.error || 'Unknown error';
+                                errorDetail = `<div style="margin-left: 20px; margin-top: 5px; padding: 8px; background: #f8d7da; border-radius: 4px; font-size: 12px; color: #721c24;">
+                                    <strong>Error:</strong> ${errorMsg}
+                                </div>`;
+                            }
+                        } else {
+                            badge = '<span class="status-badge" style="background: #e0e0e0;">⏳ Pending</span>';
+                        }
+                        
+                        html += `
+                            <div style="padding: 8px; margin: 5px 0; background: ${video.status === 'failed' && video.error_type !== 'duplicate' ? '#fff5f5' : '#f9f9f9'}; border-radius: 5px;">
+                                <strong>${i + 1}.</strong> ${video.title} ${badge}
+                                ${errorDetail}
+                            </div>
+                        `;
+                    });
+                    
+                    html += '</div>';
+                    videoList.innerHTML = html;
+                }
+                
+            } catch (error) {
+                console.error('Error updating progress:', error);
+                document.getElementById('statusMessage').innerHTML = `<strong style="color: #dc3545;">❌ Error updating progress: ${error.message}</strong>`;
+            }
+        }
+        
+        // Scheduler Functions
+        async function loadScheduledJobs() {
+            try {
+                document.getElementById('jobsLoading').style.display = 'block';
+                document.getElementById('jobsTable').style.display = 'none';
+                
+                const response = await fetch('/api/scheduler/jobs');
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderJobsTable(data.jobs);
+                    document.getElementById('jobsLoading').style.display = 'none';
+                    document.getElementById('jobsTable').style.display = 'block';
+                } else {
+                    document.getElementById('jobsLoading').innerHTML = `Error: ${data.error}`;
+                }
+            } catch (error) {
+                console.error('Error loading jobs:', error);
+                document.getElementById('jobsLoading').innerHTML = `Error: ${error.message}`;
+            }
+        }
+        
+        function renderJobsTable(jobs) {
+            const tbody = document.getElementById('jobsTableBody');
+            if (jobs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px;">No scheduled jobs found. Create one to get started!</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = jobs.map(job => `
+                <tr>
+                    <td><strong>${job.name}</strong></td>
+                    <td>${job.channels.join(', ')}</td>
+                    <td>${job.frequency}</td>
+                    <td>${job.start_date}</td>
+                    <td>${job.last_run ? new Date(job.last_run).toLocaleDateString() : 'Never'}</td>
+                    <td>${job.next_run ? new Date(job.next_run).toLocaleString() : 'Not scheduled'}</td>
+                    <td>
+                        <span class="status-badge status-${job.status}">
+                            ${job.status}${job.last_error ? ' (error)' : ''}
+                        </span>
+                    </td>
+                    <td>${job.total_downloads || 0}</td>
+                    <td>
+                        <button class="btn btn-small" onclick="runJobNow('${job.id}')">Run Now</button>
+                        <button class="btn btn-small btn-danger" onclick="deleteJob('${job.id}', '${job.name}')">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        function showCreateJobForm() {
+            document.getElementById('createJobForm').style.display = 'block';
+            // Set default start date to 30 days ago
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            document.getElementById('jobStartDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+        }
+        
+        function hideCreateJobForm() {
+            document.getElementById('createJobForm').style.display = 'none';
+            // Clear form
+            document.getElementById('jobName').value = '';
+            document.getElementById('jobChannels').value = '';
+            document.getElementById('jobFrequency').value = 'daily';
+            document.getElementById('jobStartDate').value = '';
+            document.getElementById('jobFolderPrefix').value = '';
+        }
+        
+        async function createScheduledJob() {
+            try {
+                const name = document.getElementById('jobName').value.trim();
+                const channelsText = document.getElementById('jobChannels').value.trim();
+                const frequency = document.getElementById('jobFrequency').value;
+                const startDate = document.getElementById('jobStartDate').value;
+                const folderPrefix = document.getElementById('jobFolderPrefix').value.trim();
+                
+                if (!name) {
+                    alert('Please enter a job name');
+                    return;
+                }
+                
+                if (!channelsText) {
+                    alert('Please enter at least one channel');
+                    return;
+                }
+                
+                if (!startDate) {
+                    alert('Please select a start date');
+                    return;
+                }
+                
+                const channels = channelsText.split('\n').map(c => c.trim()).filter(c => c);
+                
+                const response = await fetch('/api/scheduler/jobs', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        name,
+                        channels,
+                        frequency,
+                        start_date: startDate,
+                        folder_prefix: folderPrefix
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    hideCreateJobForm();
+                    loadScheduledJobs();
+                    alert(`Job "${name}" created successfully! It will start catch-up downloads in 30 seconds.`);
+                } else {
+                    alert(`Error creating job: ${result.error}`);
+                }
+                
+            } catch (error) {
+                console.error('Error creating job:', error);
+                alert(`Error creating job: ${error.message}`);
+            }
+        }
+        
+        async function deleteJob(jobId, jobName) {
+            if (!confirm(`Are you sure you want to delete the job "${jobName}"? This cannot be undone.`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/scheduler/jobs/${jobId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    loadScheduledJobs();
+                    alert('Job deleted successfully');
+                } else {
+                    alert(`Error deleting job: ${result.error}`);
+                }
+                
+            } catch (error) {
+                console.error('Error deleting job:', error);
+                alert(`Error deleting job: ${error.message}`);
+            }
+        }
+        
+        async function runJobNow(jobId) {
+            try {
+                const response = await fetch(`/api/scheduler/jobs/${jobId}/run`, {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Job started successfully! Check the console/logs for progress.');
+                    // Refresh the table after a few seconds to show updated status
+                    setTimeout(loadScheduledJobs, 3000);
+                } else {
+                    alert(`Error starting job: ${result.error}`);
+                }
+                
+            } catch (error) {
+                console.error('Error starting job:', error);
+                alert(`Error starting job: ${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html>

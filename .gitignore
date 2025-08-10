@@ -12,6 +12,12 @@ ENV/
 # Transcripts
 transcripts/
 
+# API Key Storage
+.api_key_storage
+
+# Scheduled Jobs
+.scheduled_jobs.json
+
 # IDE
 .vscode/
 .idea/
